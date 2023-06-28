@@ -1,6 +1,7 @@
 require('dotenv').config();
 
-const express = require("express");
+const express = require('express');
+const cors = require('cors');
 const cookieParser = require("cookie-parser");
 
 const indexRouter = require("./routes/index");
@@ -20,6 +21,8 @@ mongoose.connect(process.env.MONGO_URI,{
 const PORT = 8080;
 
 const app = express();
+//enable CORS
+app.use(cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

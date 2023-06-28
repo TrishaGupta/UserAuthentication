@@ -16,35 +16,48 @@ const user = require("../models/user");
 
 //posting sign up action
 router.post("/signup", async(req, res)=>{
+    console.log("Sign up");
     //try creating new user and adding to the database
     try{
 
-        const {email, password} = req.body;
+        const {newEmail, newPassword} = req.body;
+        const email = newEmail;
+        const password = newPassword;
+        //console.log(req);
 
         // check if user already exists 
         const userCheck = await user.findOne({email:email});
-
+        
         if(userCheck){
             return res.status(500).json({
                 message: "Email already exists! Try logging in using it.",
                 type: "warning"
             });
+            
         }
-
+        
+        let hashPassword;
         // if new user then hash password with salt length 15
-        const hashPassword = await hash(password,15);
-
+        try{
+        hashPassword = await hash(password,10);
+        }
+        catch(error){
+            console.log(error);
+        }
+        
         // create new user for database
         const newUser = new user({
             email: email,
             password: hashPassword
         });
 
+       
         await newUser.save();
         res.status(200).json({
             message: "User created successfully!",
             type:"success"
         });
+
     }
     //if unable to create and add new user to database 
     catch(error){
