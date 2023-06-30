@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 
+const emailServer = require('./utils/emails');
+
 const indexRouter = require("./routes/index");
 const authRouter = require("./routes/auth");
 
@@ -21,6 +23,7 @@ mongoose.connect(process.env.MONGO_URI,{
 const PORT = 8080;
 
 const app = express();
+const emailApp = express();
 //enable CORS
 app.use(cors());
 
@@ -31,6 +34,12 @@ app.use(cookieParser());
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
 
+
 app.listen(PORT, function () {
   console.log(`Listening on port ${PORT}`);
 });
+
+
+
+
+

@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 const { hash, compare } = require("bcryptjs");
 const { verify } = require("jsonwebtoken");
+const sendEmail = require('../utils/emails.js');
 
 const { createAccessToken,
     createRefreshToken,
@@ -14,9 +15,11 @@ const { protected } = require("../utils/protected");
 //importing the user model
 const user = require("../models/user");
 
+
 //posting sign up action
 router.post("/signup", async(req, res)=>{
-    console.log("Sign up");
+    
+    
     //try creating new user and adding to the database
     try{
 
@@ -24,6 +27,7 @@ router.post("/signup", async(req, res)=>{
         const email = newEmail;
         const password = newPassword;
         //console.log(req);
+        console.log("tomato");
 
         // check if user already exists 
         const userCheck = await user.findOne({email:email});
@@ -44,15 +48,26 @@ router.post("/signup", async(req, res)=>{
         catch(error){
             console.log(error);
         }
-        
+       
         // create new user for database
         const newUser = new user({
             email: email,
             password: hashPassword
         });
 
-       
+    
         await newUser.save();
+    
+        let verifyResponse;
+        try{
+             verifyResponse = sendEmail(null,email);
+        }
+        catch(error){
+            console.log(error);
+        }
+        if (verifyResponse == 200){
+            console.log("Route to a new page");
+        }
         res.status(200).json({
             message: "User created successfully!",
             type:"success"
@@ -75,12 +90,16 @@ router.post("/signup", async(req, res)=>{
 //posting Sign In request
 router.post("/signin", async(req,res)=>{
     try{
+        console.log("Sign In");
+
         const{email, password} = req.body;
         const userCheck = await user.findOne({email:email});
+        console.log(userCheck.verified);
+   
 
         //if user does not exist
         if(!user){
-            res.status(500).json({
+            return res.status(500).json({
                 message:"User does not exist!",
                 type:"error"
             });
@@ -91,8 +110,15 @@ router.post("/signin", async(req,res)=>{
         //is passwords don't match send error
 
         if(!isMatch){
-            res.status(500).json({
+            return res.status(500).json({
                 message:"Password is incorrect!",
+                type:"error"
+            });
+        }
+
+        if(!userCheck.verified){
+            return res.status(500).json({
+                message:"Your email is not verified! Verify email and try again.",
                 type:"error"
             });
         }
@@ -100,10 +126,12 @@ router.post("/signin", async(req,res)=>{
         //password is correct so create tokens
         const accessToken = createAccessToken(userCheck._id);
         const refreshToken = createRefreshToken(userCheck._id);
+        
 
 
         userCheck.refreshToken = refreshToken;
-        await user.save();
+        await userCheck.save();
+       
 
         //send response to tokens 
         sendAccessToken(req, res, accessToken);
@@ -207,6 +235,35 @@ router.post("/logout", (_req, res) => {
       }
   });
 
+router.post('/confirm', async(req, res)=>{
+    const emailObj = req.body;
+    const email = emailObj.email;
+   
+    const userCheck = await user.findOne({email:email});
+
+
+    // find user
+    
+    
+
+    if(!userCheck){
+         return res.status(500).json({
+            type: "error",
+            message: "User does not exist!",
+            error,
+          });
+    }
+    userCheck.verified = true;
+    await userCheck.save();
+
+    return res.json({
+        message:"Email verified!",
+        type:"success"
+    });
+    
+    
+});
+
 // protected route request
 
 router.post('/protected', protected, async(req,res) =>{
@@ -233,3 +290,4 @@ router.post('/protected', protected, async(req,res) =>{
 });
 
 module.exports = router;
+
